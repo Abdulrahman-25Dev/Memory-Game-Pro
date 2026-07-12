@@ -131,6 +131,9 @@ export default function Home() {
   const [isGameOver, setIsGameOver] = useState(false);
   const timerIdRef = useRef<NodeJS.Timeout | null>(null);
 
+  const [leaders, setLeaders] = useState([]);
+  const [leaderboardDifficulty, setLeaderboardDifficulty] = useState("medium");
+
   const handleCheckUsername = async () => {
     // 1. التحقق الأولي من المدخلات في الفرونت إند
     if (!username.trim() || username.length < 3) {
@@ -167,52 +170,76 @@ export default function Home() {
     }
   };
 
-  const handleStartGame = (e: React.FormEvent) => {
+  const handleStartGame = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 1. التحقق الأولي من طول الـ PIN في الفرونت إند
     if (pin.length !== 4 || isNaN(Number(pin))) {
       setAuthError("الرمز السري PIN يجب أن يتكون من 4 أرقام!");
       return;
     }
 
-    if (
-      isNewUser === false &&
-      username.toLowerCase() === "عبدالرحمن" &&
-      pin !== "1234"
-    ) {
-      setAuthError("الرمز السري PIN غير صحيح لهذا المحارب!");
-      return;
-    }
-
     setAuthError("");
 
-    let pairCount = 8;
-    if (difficulty === "easy") pairCount = 6;
-    if (difficulty === "hard") pairCount = 12; // 24 بطاقة متساوية تماماً! 🔥
+    try {
+      // 2. الاتصال بالباك إند للتحقق من الـ PIN أو إنشاء الحساب الجديد
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: username.trim(),
+          pin: pin,
+        }),
+      });
 
-    const currentItems = CATEGORIES[category].items;
-    const selectedItems = currentItems.slice(
-      0,
-      Math.min(pairCount, currentItems.length),
-    );
-    const gameItems = [...selectedItems, ...selectedItems];
+      const data = await response.json();
 
-    const shuffledCards = gameItems
-      .sort(() => Math.random() - 0.5)
-      .map((item, index) => ({
-        id: index,
-        value: item.value,
-        color: (item as { color?: string }).color,
-        isFlipped: false,
-        isMatched: false,
-      }));
+      if (!response.ok) {
+        // إذا كان الرمز خاطئاً أو حدثت مشكلة، نعرض الخطأ القادم من السيرفر ونوقف التنفيذ
+        setAuthError(data.message || "حدث خطأ أثناء تسجيل الدخول");
+        return;
+      }
 
-    setCards(shuffledCards);
-    setMoves(0);
-    setTime(0);
-    setGameStarted(false);
-    setSelectedCards([]);
-    setIsGameOver(false);
-    setScreen("game");
+      // 3. 💾 حفظ بيانات اللاعب المستلمة من قاعدة البيانات في المتصفح
+      localStorage.setItem("userId", data.userId);
+      localStorage.setItem("username", data.username);
+
+      // --- 🎮 منطق توزيع الكروت وتجهيز اللعبة الخاص بك (بدون أي تعديل على طريقة حسابك) ---
+      let pairCount = 8;
+      if (difficulty === "easy") pairCount = 6;
+      if (difficulty === "hard") pairCount = 12;
+
+      const currentItems = CATEGORIES[category].items;
+      const selectedItems = currentItems.slice(
+        0,
+        Math.min(pairCount, currentItems.length),
+      );
+      const gameItems = [...selectedItems, ...selectedItems];
+
+      const shuffledCards = gameItems
+        .sort(() => Math.random() - 0.5)
+        .map((item, index) => ({
+          id: index,
+          value: item.value,
+          color: (item as { color?: string }).color,
+          isFlipped: false,
+          isMatched: false,
+        }));
+
+      // إعادة تصفير قيم اللعبة وبدء الجولة
+      setCards(shuffledCards);
+      setMoves(0);
+      setTime(0);
+      setGameStarted(false);
+      setSelectedCards([]);
+      setIsGameOver(false);
+      setScreen("game"); // انتقال سلس لشاشة اللعب 🎬
+    } catch (error) {
+      console.error("خطأ أثناء الدخول وبدء اللعبة:", error);
+      setAuthError("فشل الاتصال بالسيرفر! تأكد من أن الباك إند يعمل.");
+    }
   };
 
   const resetMenu = () => {
@@ -301,16 +328,73 @@ export default function Home() {
     }
   };
 
+  useEffect(() => {
+    // نجلب البيانات فقط إذا كانت الشاشة الحالية هي لوحة الصدارة
+    if (screen === "leaderboard") {
+      const fetchLeaderboard = async () => {
+        try {
+          console.log(`⏳ جاري جلب لوحة الصدارة للمستوى: ${leaderboardDifficulty}`);
+          
+          const response = await fetch(`http://localhost:5000/api/leaderboard?difficulty=${leaderboardDifficulty}`);
+          const data = await response.json();
+          
+          if (response.ok) {
+            console.log("✅ تم جلب البيانات بنجاح من السيرفر:", data);
+            setLeaders(data);
+          } else {
+            console.error("❌ فشل السيرفر في إرجاع البيانات:", data.message);
+          }
+        } catch (error) {
+          console.error("❌ خطأ في الشبكة! تأكد من تشغيل الباك إند على بورت 5000:", error);
+        }
+      };
+
+      fetchLeaderboard();
+    }
+  }, [screen, leaderboardDifficulty]); // يعيد التشغيل فوراً عند تغيير الشاشة أو مستوى الصعوبة
+
   const getGridCols = () => {
     if (difficulty === "easy") return "grid-cols-4";
     if (difficulty === "hard") return "grid-cols-4 sm:grid-cols-6";
     return "grid-cols-4";
   };
 
-  const saveGameScore = () => {
-    // 🎯 دالة فارغة للربط مع الـ Backend لاحقاً
-    console.log("حفظ النقاط:", { username, time, moves, difficulty, category });
-    // TODO: أرسل البيانات إلى الـ API
+  const saveGameScore = async () => {
+    // 1. جلب معرف اللاعب المخزن في الـ localStorage من خطوة تسجيل الدخول
+    const userId = localStorage.getItem("userId");
+
+    if (!userId) {
+      console.error("لم يتم العثور على userId! تأكد من تسجيل الدخول أولاً.");
+      return;
+    }
+
+    try {
+      // 2. إرسال البيانات للباك إند
+      const response = await fetch("http://localhost:5000/api/scores", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: userId,
+          moves: moves, // الـ State الخاص بالمحاولات في لعبتك
+          timeInSeconds: time, // الـ State الخاص بالوقت (أو المتغير المعرف عندك للوقت)
+          difficulty: difficulty, // الـ State الخاص بالصعوبة (easy, medium, hard)
+          category: category, // الـ State الخاص بتصنيف الكروت (مثل لغات برمجة)
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("🏆 تم حفظ النتيجة بنجاح في قاعدة البيانات!");
+        alert("تم تسجيل إنجازك في لوحة الصدارة العالمية! 🥇");
+      } else {
+        console.error("فشل السيرفر في الحفظ:", data.message);
+      }
+    } catch (error) {
+      console.error("خطأ في الشبكة أثناء حفظ النتيجة:", error);
+    }
   };
 
   const handlePlayAgain = () => {
@@ -348,7 +432,7 @@ export default function Home() {
       className="flex flex-col flex-1 items-center justify-center min-h-screen bg-linear-to-b from-amber-50 to-orange-100 p-4 select-none text-right"
       dir="rtl"
     >
-      <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-linear-to-r from-amber-600 to-orange-600 mb-8 drop-shadow">
+      <h1 className="text-3xl md:text-4xl  font-extrabold text-transparent bg-clip-text bg-linear-to-r from-amber-600 to-orange-600 mb-8 drop-shadow">
         Memory Game Pro 🎮
       </h1>
 
@@ -642,11 +726,82 @@ export default function Home() {
       )}
 
       {/* 3️⃣ شاشة لوحة الصدارة (LEADERBOARD) */}
+      {/* 3️⃣ شاشة لوحة الصدارة (LEADERBOARD) - النمط الفاتح */}
       {screen === "leaderboard" && (
-        <div className="flex flex-col items-center animate-fade-in ">
+        <div className="flex flex-col items-center animate-fade-in w-full max-w-2xl mx-auto p-6 bg-white rounded-2xl shadow-xl border border-gray-150">
+          
+          <h2 className="text-3xl font-extrabold text-amber-500 mb-6 text-center drop-shadow-sm flex items-center gap-2">
+            🏆 لوحة صدارة المحاربين
+          </h2>
+
+          {/* أزرار اختيار مستوى الصعوبة للفلترة */}
+          <div className="flex gap-2 justify-center mb-6 w-full">
+            {[
+              { id: 'easy', label: 'سهل (12)' },
+              { id: 'medium', label: 'متوسط (16)' },
+              { id: 'hard', label: 'صعب (24) 🔥' }
+            ].map((level) => (
+              <button 
+                key={level.id}
+                onClick={() => setLeaderboardDifficulty(level.id)}
+                className={`px-4 py-2 rounded-xl font-bold text-sm transition-all shadow-sm ${
+                  leaderboardDifficulty === level.id 
+                    ? 'bg-amber-500 text-white scale-105' 
+                    : 'bg-gray-100 text-gray-750 hover:bg-gray-200'
+                }`}
+              >
+                {level.label}
+              </button>
+            ))}
+          </div>
+
+          {/* جدول عرض الأبطال بتصميم فاتح ونظيف */}
+          <div className="w-full overflow-hidden rounded-xl border border-gray-200 mb-6 bg-gray-50/50">
+            <table className="w-full text-right border-collapse text-sm">
+              <thead>
+                <tr className="bg-amber-500 text-white p-3">
+                  <th className="p-3 text-center rounded-tr-xl">الترتيب</th>
+                  <th className="p-3">المحارب</th>
+                  <th className="p-3 text-center">المحاولات</th>
+                  <th className="p-3 text-center rounded-tl-xl">الوقت</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaders.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-gray-400 font-medium">
+                      لا توجد سجلات أبطال لهذا المستوى بعد. كن الأول! 🎯
+                    </td>
+                  </tr>
+                ) : (
+                  leaders.map((player: any, index: number) => (
+                    <tr 
+                      key={index} 
+                      className="border-b border-gray-200 last:border-0 hover:bg-amber-50/60 transition-colors bg-white"
+                    >
+                      <td className="p-3 text-center font-bold text-gray-400">
+                        {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`}
+                      </td>
+                      <td className="p-3 font-semibold text-gray-800">
+                        {player.username}
+                      </td>
+                      <td className="p-3 text-center font-mono font-bold text-amber-600">
+                        {player.moves}
+                      </td>
+                      <td className="p-3 text-center font-mono text-gray-600">
+                        {player.timeInSeconds} ثانية
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* زر العودة للقائمة الرئيسية */}
           <button
             onClick={resetMenu}
-            className="bg-amber-500 px-6 hover:bg-amber-600 text-white font-bold py-3 rounded-xl transition-all text-center shadow-md active:scale-98"
+            className="bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 px-8 rounded-xl transition-all text-center shadow-md active:scale-98 w-full sm:w-auto"
           >
             العودة للقائمة الرئيسية 🏠
           </button>
