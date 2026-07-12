@@ -1,2 +1,13 @@
 @import "tailwindcss";
 
+@layer base {
+  body {
+    font-family: "tajawal", sans-serif;
+  }
+}
+
+@layer components {
+  .font-tajawal {
+    font-family: var(--font-tajawal);
+  }
+}
