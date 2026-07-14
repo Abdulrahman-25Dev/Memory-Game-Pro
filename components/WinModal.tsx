@@ -39,7 +39,7 @@ export default function WinModal({
             </span>
             <span className="text-emerald-600 font-bold text-lg">
               {(() => {
-                const total = difficulty === "easy" ? 30 : difficulty === "hard" ? 90 : 45;
+                const total = difficulty === "easy" ? 30 : difficulty === "hard" ? 70 : 45;
                 const elapsed = total - time;
                 return `${elapsed} ثانية`;
               })()}

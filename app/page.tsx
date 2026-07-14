@@ -154,7 +154,7 @@ export default function Home() {
 
   const getInitialTime = () => {
     if (difficulty === "easy") return 30;
-    if (difficulty === "hard") return 90;
+    if (difficulty === "hard") return 70;
     return 45;
   };
 
@@ -446,6 +446,10 @@ export default function Home() {
             handleCardClick={handleCardClick}
             mismatchedCardIds={mismatchedCardIds}
             getGridCols={getGridCols}
+            categoryName={
+              CATEGORIES[category as keyof typeof CATEGORIES]?.name ||
+              "غير محدد"
+            }
           />
 
           {isGameOver && (

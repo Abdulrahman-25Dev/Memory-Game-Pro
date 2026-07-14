@@ -17,6 +17,7 @@ type Props = {
   handleCardClick: (id: number) => void;
   mismatchedCardIds: number[];
   getGridCols: () => string;
+  categoryName: string;
 };
 
 export default function GameBoard({
@@ -28,13 +29,14 @@ export default function GameBoard({
   handleCardClick,
   mismatchedCardIds,
   getGridCols,
+  categoryName,
 }: Props) {
   return (
     <div className="flex flex-col items-center animate-fade-in">
       <div className="mb-4 text-center bg-linear-to-r from-amber-500 to-orange-500 text-white px-5 py-1.5 rounded-full font-bold text-sm shadow-sm flex gap-2 items-center">
         <span>المحارب: {username} 👤</span>
         <span className="bg-white/20 px-2 py-0.5 rounded text-xs">
-          ثيم: {/* short name handled by parent */}
+          ثيم: {categoryName}
         </span>
       </div>
 
