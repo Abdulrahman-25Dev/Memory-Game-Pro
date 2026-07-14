@@ -22,6 +22,12 @@ const tajawal = Tajawal({
 export const metadata: Metadata = {
   title: "Memory Game Pro",
   description: "A simple memory game built with Next.js",
+
+  icons: {
+    icon: "/LamhaIcon.png",
+    shortcut: "/LamhaIcon.ico",
+    apple: "/LamhaIcon.png",
+  },
 };
 
 export default function RootLayout({
