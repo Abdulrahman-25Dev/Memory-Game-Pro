@@ -16,6 +16,7 @@ type Props = {
   authError: string;
   handleCheckUsername: () => void;
   handleStartGame: (e: React.FormEvent) => Promise<void> | void;
+  isLoading: boolean;
   category: string;
   setCategory: React.Dispatch<React.SetStateAction<string>>;
   difficulty: "easy" | "medium" | "hard" | string;
@@ -36,6 +37,7 @@ export default function MainMenu({
   authError,
   handleCheckUsername,
   handleStartGame,
+  isLoading,
   category,
   setCategory,
   difficulty,
@@ -159,9 +161,21 @@ export default function MainMenu({
           <div className="flex flex-col gap-2 mt-2">
             <button
               type="submit"
-              className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl text-lg shadow-lg transition-all active:scale-98"
+              disabled={isLoading}
+              className={`bg-emerald-500 text-white font-bold py-3.5 rounded-xl text-lg shadow-lg transition-all ${
+                isLoading
+                  ? "cursor-not-allowed opacity-80"
+                  : "hover:bg-emerald-600 active:scale-98"
+              }`}
             >
-              دخول و بدء التحدي 🚀
+              {isLoading ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <span className="h-4 w-4 rounded-full border-2 border-white/70 border-t-transparent animate-spin" />
+                  إيقاظ السيرفر.. قد يستغرق عدة ثوان ☕
+                </span>
+              ) : (
+                "دخول و بدء التحدي 🚀"
+              )}
             </button>
             <button
               type="button"

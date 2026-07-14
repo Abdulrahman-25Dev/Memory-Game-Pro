@@ -132,6 +132,7 @@ export default function Home() {
   const [pin, setPin] = useState("");
   const [isNewUser, setIsNewUser] = useState<boolean | null>(null);
   const [authError, setAuthError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
 
   const [category, setCategory] = useState<keyof typeof CATEGORIES | string>(
@@ -224,6 +225,8 @@ export default function Home() {
   const handleStartGame = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
+    setIsLoading(true);
+
     // login / register via backend, then start game
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
@@ -256,6 +259,8 @@ export default function Home() {
     } catch (err) {
       console.error(err);
       setAuthError("فشل الاتصال بالباك‑إند");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -427,6 +432,7 @@ export default function Home() {
           authError={authError}
           handleCheckUsername={handleCheckUsername}
           handleStartGame={handleStartGame}
+          isLoading={isLoading}
           category={String(category)}
           setCategory={setCategory}
           difficulty={difficulty}
