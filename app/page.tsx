@@ -133,6 +133,7 @@ export default function Home() {
   const [isNewUser, setIsNewUser] = useState<boolean | null>(null);
   const [authError, setAuthError] = useState("");
 
+
   const [category, setCategory] = useState<keyof typeof CATEGORIES | string>(
     "programming",
   );
@@ -202,7 +203,7 @@ export default function Home() {
     setAuthError("");
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/check", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/check`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
@@ -225,7 +226,7 @@ export default function Home() {
 
     // login / register via backend, then start game
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, pin }),
@@ -369,7 +370,7 @@ export default function Home() {
       (async () => {
         try {
           const res = await fetch(
-            `http://localhost:5000/api/leaderboard?difficulty=${leaderboardDifficulty}`,
+            `${process.env.NEXT_PUBLIC_API_URL}/api/leaderboard?difficulty=${leaderboardDifficulty}`,
           );
           if (res.ok) setLeaders(await res.json());
         } catch (e) {
@@ -384,7 +385,7 @@ export default function Home() {
       const userId = localStorage.getItem("userId");
       if (!userId) return;
       const elapsedTime = Math.max(0, getInitialTime() - time);
-      await fetch("http://localhost:5000/api/scores", {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/scores`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
