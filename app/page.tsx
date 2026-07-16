@@ -23,6 +23,8 @@ import {
   SiApple,
   SiPostgresql,
   SiMysql,
+  SiVuedotjs,
+  SiAndroid,
 } from "react-icons/si";
 
 import MainMenu from "../components/MainMenu";
@@ -100,8 +102,9 @@ export const CATEGORIES: Record<string, Category> = {
       { value: SiFigma, color: "text-rose-500" },
       { value: SiLinux, color: "text-amber-550" }, // درجة أغمق قليلاً لتضح على الخلفيات الفاتحة
       { value: SiApple, color: "text-gray-900" },
-      { value: SiPostgresql, color: "text-sky-600" },
+      { value: SiAndroid, color: "text-green-600" },
       { value: SiMysql, color: "text-blue-400" },
+      { value: SiVuedotjs, color: "text-amber-550" },
     ],
   },
   nature: {
